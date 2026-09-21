@@ -1,0 +1,121 @@
+version: '3.8'
+
+services:
+  mongodb:
+    container_name: gardening-mongodb
+    image: mongo:6
+    restart: unless-stopped
+    ports:
+      - "2903:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_USERNAME:-root}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD:-rootpassword}
+      MONGO_INITDB_DATABASE: ${MONGO_DATABASE:-gardening}
+    volumes:
+      - mongodb_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - gardening-network
+
+  redis:
+    container_name: gardening-redis
+    image: redis:7-alpine
+    restart: unless-stopped
+    ports:
+      - "6503:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - gardening-network
+
+  minio:
+    container_name: gardening-minio
+    image: minio/minio:latest
+    restart: unless-stopped
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ACCESS_KEY:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY:-minioadmin}
+    command: server /data --console-address ":9001"
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - gardening-network
+
+  backend:
+    container_name: gardening-backend
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "3103:3000"
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      DATABASE_URL: mongodb://${MONGO_USERNAME:-root}:${MONGO_PASSWORD:-rootpassword}@mongodb:27017/${MONGO_DATABASE:-gardening}?authSource=admin
+      JWT_SECRET: ${JWT_SECRET:-your-super-secret-key-change-in-production}
+      JWT_EXPIRES_IN: 7d
+      REDIS_URL: redis://redis:6379
+      MINIO_ENDPOINT: minio
+      MINIO_PORT: 9000
+      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY:-minioadmin}
+      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:-minioadmin}
+      MINIO_USE_SSL: false
+      MINIO_BUCKET: gardening
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    networks:
+      - gardening-network
+
+  frontend:
+    container_name: gardening-frontend
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        API_BASE_URL: http://localhost:3103
+        WEBSOCKET_URL: http://localhost:3103
+    restart: unless-stopped
+    ports:
+      - "8103:3000"
+    depends_on:
+      - backend
+    networks:
+      - gardening-network
+
+volumes:
+  mongodb_data:
+    name: gardening-mongodb-data
+  redis_data:
+    name: gardening-redis-data
+  minio_data:
+    name: gardening-minio-data
+
+networks:
+  gardening-network:
+    name: gardening-network
+    driver: bridge

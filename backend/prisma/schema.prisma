@@ -1,0 +1,267 @@
+// 数据库连接配置
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+// Prisma 客户端生成配置
+generator client {
+  provider = "prisma-client-js"
+}
+
+// 用户等级枚举
+enum UserLevel {
+  SEED
+  SPROUT
+  FLOWER
+  TREE
+}
+
+// 日记标签枚举
+enum DiaryTag {
+  SOWING
+  GERMINATION
+  FLOWERING
+  HARVEST
+  CARE
+  OTHER
+}
+
+// 话题分类枚举
+enum TopicCategory {
+  BALCONY_GARDEN
+  COURTYARD_DESIGN
+  INDOOR_PLANTS
+  HYDROPONICS
+  COMPOST
+  OTHER
+}
+
+// 用户模型
+model User {
+  id          String    @id @default(auto()) @map("_id") @db.ObjectId
+  username    String    @unique
+  email       String    @unique
+  password    String
+  avatar      String?
+  bio         String?
+  level       UserLevel @default(SEED)
+  points      Int       @default(0)
+  isAdmin     Boolean   @default(false)
+  
+  // OAuth2 相关
+  wechatOpenId String?  @unique
+  
+  // 关系
+  diaries     Diary[]
+  posts       Post[]
+  comments    Comment[]
+  likes       Like[]
+  moments     Moment[]
+  following   Follow[]  @relation("UserFollowing")
+  followers   Follow[]  @relation("UserFollowers")
+  sentMessages    Message[]   @relation("SentMessages")
+  receivedMessages  Message[] @relation("ReceivedMessages")
+  reports     Report[]
+  challengeSubmissions ChallengeSubmission[]
+  
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  
+  @@map("users")
+}
+
+// 关注关系模型
+model Follow {
+  id          String    @id @default(auto()) @map("_id") @db.ObjectId
+  followerId  String    @db.ObjectId
+  followingId String    @db.ObjectId
+  follower    User      @relation("UserFollowing", fields: [followerId], references: [id])
+  following   User      @relation("UserFollowers", fields: [followingId], references: [id])
+  
+  createdAt   DateTime  @default(now())
+  
+  @@unique([followerId, followingId])
+  @@map("follows")
+}
+
+// 花园日记模型
+model Diary {
+  id          String    @id @default(auto()) @map("_id") @db.ObjectId
+  title       String
+  content     String
+  images      String[]
+  tags        DiaryTag[]
+  authorId    String    @db.ObjectId
+  author      User      @relation(fields: [authorId], references: [id])
+  
+  comments    Comment[]
+  likes       Like[]
+  
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  
+  @@map("diaries")
+}
+
+// 话题帖子模型
+model Post {
+  id          String    @id @default(auto()) @map("_id") @db.ObjectId
+  title       String
+  content     String
+  images      String[]
+  category    TopicCategory
+  authorId    String    @db.ObjectId
+  author      User      @relation(fields: [authorId], references: [id])
+  
+  comments    Comment[]
+  likes       Like[]
+  
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  
+  @@map("posts")
+}
+
+// 花友圈动态模型
+model Moment {
+  id          String    @id @default(auto()) @map("_id") @db.ObjectId
+  content     String
+  images      String[]
+  authorId    String    @db.ObjectId
+  author      User      @relation(fields: [authorId], references: [id])
+  
+  comments    Comment[]
+  likes       Like[]
+  
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  
+  @@map("moments")
+}
+
+// 评论模型
+model Comment {
+  id          String    @id @default(auto()) @map("_id") @db.ObjectId
+  content     String
+  authorId    String    @db.ObjectId
+  author      User      @relation(fields: [authorId], references: [id])
+  
+  diaryId     String?   @db.ObjectId
+  diary       Diary?    @relation(fields: [diaryId], references: [id])
+  postId      String?   @db.ObjectId
+  post        Post?     @relation(fields: [postId], references: [id])
+  momentId    String?   @db.ObjectId
+  moment      Moment?   @relation(fields: [momentId], references: [id])
+  
+  likes       Like[]
+  
+  createdAt   DateTime  @default(now())
+  
+  @@map("comments")
+}
+
+// 点赞模型
+model Like {
+  id          String    @id @default(auto()) @map("_id") @db.ObjectId
+  userId      String    @db.ObjectId
+  user        User      @relation(fields: [userId], references: [id])
+  
+  diaryId     String?   @db.ObjectId
+  diary       Diary?    @relation(fields: [diaryId], references: [id])
+  postId      String?   @db.ObjectId
+  post        Post?     @relation(fields: [postId], references: [id])
+  momentId    String?   @db.ObjectId
+  moment      Moment?   @relation(fields: [momentId], references: [id])
+  commentId   String?   @db.ObjectId
+  comment     Comment?  @relation(fields: [commentId], references: [id])
+  
+  createdAt   DateTime  @default(now())
+  
+  @@map("likes")
+}
+
+// 活动挑战模型
+model Challenge {
+  id          String    @id @default(auto()) @map("_id") @db.ObjectId
+  title       String
+  description String
+  coverImage  String?
+  startDate   DateTime
+  endDate     DateTime
+  isActive    Boolean   @default(true)
+  
+  submissions ChallengeSubmission[]
+  
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  
+  @@map("challenges")
+}
+
+// 活动提交模型
+model ChallengeSubmission {
+  id          String    @id @default(auto()) @map("_id") @db.ObjectId
+  challengeId String    @db.ObjectId
+  challenge   Challenge @relation(fields: [challengeId], references: [id])
+  userId      String    @db.ObjectId
+  user        User      @relation(fields: [userId], references: [id])
+  content     String
+  images      String[]
+  isWinning   Boolean   @default(false)
+  
+  createdAt   DateTime  @default(now())
+  
+  @@map("challenge_submissions")
+}
+
+// 私信模型
+model Message {
+  id          String    @id @default(auto()) @map("_id") @db.ObjectId
+  senderId    String    @db.ObjectId
+  sender      User      @relation("SentMessages", fields: [senderId], references: [id])
+  receiverId  String    @db.ObjectId
+  receiver    User      @relation("ReceivedMessages", fields: [receiverId], references: [id])
+  content     String?
+  image       String?
+  isRead      Boolean   @default(false)
+  
+  createdAt   DateTime  @default(now())
+  
+  @@map("messages")
+}
+
+// 举报模型
+model Report {
+  id          String    @id @default(auto()) @map("_id") @db.ObjectId
+  reporterId  String    @db.ObjectId
+  reporter    User      @relation(fields: [reporterId], references: [id])
+  reason      String
+  description String?
+  
+  // 被举报内容类型和ID
+  targetType  String
+  targetId    String    @db.ObjectId
+  
+  // 处理状态
+  status      String    @default("PENDING")
+  handledBy   String?   @db.ObjectId
+  handledAt   DateTime?
+  
+  createdAt   DateTime  @default(now())
+  
+  @@map("reports")
+}
+
+// 签到记录模型
+model CheckIn {
+  id          String    @id @default(auto()) @map("_id") @db.ObjectId
+  userId      String    @db.ObjectId
+  date        DateTime  @default(now())
+  points      Int       @default(10)
+  
+  createdAt   DateTime  @default(now())
+  
+  @@unique([userId, date])
+  @@map("check_ins")
+}
