@@ -99,13 +99,30 @@ export interface Challenge {
   coverImage?: string;
   startDate: string;
   endDate: string;
+  registrationDeadline: string;
+  submissionDeadline: string;
+  capacity: number;
+  registeredCount: number;
+  remainingSlots?: number;
   isActive: boolean;
+  myRegistered?: boolean;
+  mySubmitted?: boolean;
+  myRegistration?: ChallengeRegistration | null;
+  mySubmission?: ChallengeSubmission | null;
   _count?: {
     submissions: number;
+    registrations?: number;
   };
   submissions?: ChallengeSubmission[];
   createdAt: string;
   updatedAt: string;
+}
+
+export interface ChallengeRegistration {
+  id: string;
+  challengeId: string;
+  userId: string;
+  createdAt: string;
 }
 
 export interface ChallengeSubmission {

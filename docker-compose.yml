@@ -5,6 +5,8 @@ services:
     container_name: gardening-mongodb
     image: mongo:6
     restart: unless-stopped
+    # Prisma 的 MongoDB 写入依赖事务，单节点副本集模式才能正常工作
+    command: ["--replSet", "rs0", "--bind_ip_all"]
     ports:
       - "2903:27017"
     environment:
@@ -14,10 +16,16 @@ services:
     volumes:
       - mongodb_data:/data/db
     healthcheck:
-      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      # 未初始化时自动执行 rs.initiate，成为 PRIMARY 后才视为健康
+      test: >
+        mongosh --quiet
+        --username "$${MONGO_INITDB_ROOT_USERNAME}"
+        --password "$${MONGO_INITDB_ROOT_PASSWORD}"
+        --authenticationDatabase admin
+        --eval "try { quit(rs.status().myState === 1 ? 0 : 1) } catch (e) { try { rs.initiate({_id: 'rs0', members: [{_id: 0, host: 'mongodb:27017'}]}) } catch (e2) {} quit(1) }"
       interval: 10s
       timeout: 5s
-      retries: 5
+      retries: 10
       start_period: 30s
     networks:
       - gardening-network
@@ -71,7 +79,7 @@ services:
     environment:
       NODE_ENV: production
       PORT: 3000
-      DATABASE_URL: mongodb://${MONGO_USERNAME:-root}:${MONGO_PASSWORD:-rootpassword}@mongodb:27017/${MONGO_DATABASE:-gardening}?authSource=admin
+      DATABASE_URL: mongodb://${MONGO_USERNAME:-root}:${MONGO_PASSWORD:-rootpassword}@mongodb:27017/${MONGO_DATABASE:-gardening}?authSource=admin&directConnection=true
       JWT_SECRET: ${JWT_SECRET:-your-super-secret-key-change-in-production}
       JWT_EXPIRES_IN: 7d
       REDIS_URL: redis://redis:6379

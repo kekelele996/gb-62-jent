@@ -49,8 +49,8 @@ model User {
   points      Int       @default(0)
   isAdmin     Boolean   @default(false)
   
-  // OAuth2 相关
-  wechatOpenId String?  @unique
+  // OAuth2 相关（可选字段不加唯一索引：MongoDB 唯一索引会把缺失值视为 null，导致第二个用户无法注册）
+  wechatOpenId String?
   
   // 关系
   diaries     Diary[]
@@ -64,6 +64,7 @@ model User {
   receivedMessages  Message[] @relation("ReceivedMessages")
   reports     Report[]
   challengeSubmissions ChallengeSubmission[]
+  challengeRegistrations ChallengeRegistration[]
   
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
@@ -190,13 +191,34 @@ model Challenge {
   startDate   DateTime
   endDate     DateTime
   isActive    Boolean   @default(true)
-  
-  submissions ChallengeSubmission[]
-  
+
+  // 报名与成果提交
+  capacity             Int      @default(50)
+  registeredCount      Int      @default(0)
+  registrationDeadline DateTime @default(now())
+  submissionDeadline   DateTime @default(now())
+
+  submissions   ChallengeSubmission[]
+  registrations ChallengeRegistration[]
+
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
-  
+
   @@map("challenges")
+}
+
+// 活动报名模型
+model ChallengeRegistration {
+  id          String    @id @default(auto()) @map("_id") @db.ObjectId
+  challengeId String    @db.ObjectId
+  challenge   Challenge @relation(fields: [challengeId], references: [id])
+  userId      String    @db.ObjectId
+  user        User      @relation(fields: [userId], references: [id])
+
+  createdAt   DateTime  @default(now())
+
+  @@unique([challengeId, userId])
+  @@map("challenge_registrations")
 }
 
 // 活动提交模型
@@ -209,9 +231,10 @@ model ChallengeSubmission {
   content     String
   images      String[]
   isWinning   Boolean   @default(false)
-  
+
   createdAt   DateTime  @default(now())
-  
+
+  @@unique([challengeId, userId])
   @@map("challenge_submissions")
 }
 

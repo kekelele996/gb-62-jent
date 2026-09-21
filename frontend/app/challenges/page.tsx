@@ -7,11 +7,12 @@ import { useAuth } from '@/context/AuthContext';
 import { challengeApi } from '@/lib/api';
 import { formatDate } from '@/lib/time';
 import { Challenge } from '@/types';
-import { 
-  Trophy, 
-  Calendar, 
+import {
+  Trophy,
+  Calendar,
   Users,
-  ChevronRight
+  ChevronRight,
+  CheckCircle
 } from 'lucide-react';
 
 export default function ChallengesPage() {
@@ -64,7 +65,8 @@ export default function ChallengesPage() {
           {challenges.map((challenge) => {
             const now = new Date();
             const isActive = now >= new Date(challenge.startDate) && now <= new Date(challenge.endDate);
-            
+            const remainingSlots = challenge.remainingSlots ?? Math.max(0, challenge.capacity - challenge.registeredCount);
+
             return (
               <Link
                 key={challenge.id}
@@ -83,24 +85,36 @@ export default function ChallengesPage() {
                       <Trophy className="w-10 h-10 text-white" />
                     </div>
                   )}
-                  
+
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center space-x-2">
                       <h3 className="font-bold text-gray-800">{challenge.title}</h3>
                       <span className={`px-2 py-0.5 text-xs rounded-full ${
-                        isActive 
-                          ? 'bg-green-100 text-green-600' 
+                        isActive
+                          ? 'bg-green-100 text-green-600'
                           : 'bg-gray-100 text-gray-500'
                       }`}>
                         {isActive ? '进行中' : '已结束'}
                       </span>
+                      {challenge.myRegistered && (
+                        <span className="px-2 py-0.5 text-xs rounded-full bg-blue-100 text-blue-600 flex items-center">
+                          <CheckCircle className="w-3 h-3 mr-1" />
+                          已报名
+                        </span>
+                      )}
+                      {challenge.mySubmitted && (
+                        <span className="px-2 py-0.5 text-xs rounded-full bg-purple-100 text-purple-600 flex items-center">
+                          <Trophy className="w-3 h-3 mr-1" />
+                          已提交
+                        </span>
+                      )}
                     </div>
-                    
+
                     <p className="text-gray-600 text-sm mt-1 line-clamp-2">
                       {challenge.description}
                     </p>
-                    
-                    <div className="flex items-center space-x-4 mt-3 text-sm text-gray-500">
+
+                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-3 text-sm text-gray-500">
                       <span className="flex items-center space-x-1">
                         <Calendar className="w-4 h-4" />
                         <span>{formatDate(challenge.startDate)} - {formatDate(challenge.endDate)}</span>
@@ -109,9 +123,14 @@ export default function ChallengesPage() {
                         <Users className="w-4 h-4" />
                         <span>{challenge._count?.submissions || 0} 人参与</span>
                       </span>
+                      <span className={`flex items-center space-x-1 ${
+                        remainingSlots > 0 ? 'text-orange-500' : 'text-gray-400'
+                      }`}>
+                        <span>剩余名额 {remainingSlots}/{challenge.capacity}</span>
+                      </span>
                     </div>
                   </div>
-                  
+
                   <ChevronRight className="w-5 h-5 text-gray-400" />
                 </div>
               </Link>

@@ -105,12 +105,25 @@ export const messageApi = {
 };
 
 export const challengeApi = {
-  getList: (params?: { active?: boolean }) => 
+  getList: (params?: { active?: boolean }) =>
     api.get('/challenges', { params }),
   getById: (id: string) => api.get(`/challenges/${id}`),
-  create: (data: { title: string; description: string; coverImage?: string; startDate: string; endDate: string }) => 
+  create: (data: {
+    title: string;
+    description: string;
+    coverImage?: string;
+    startDate: string;
+    endDate: string;
+    capacity: number;
+    registrationDeadline: string;
+    submissionDeadline: string;
+  }) =>
     api.post('/challenges', data),
-  submit: (challengeId: string, data: { content: string; images?: string[] }) => 
+  register: (challengeId: string) =>
+    api.post(`/challenges/${challengeId}/register`),
+  cancelRegistration: (challengeId: string) =>
+    api.delete(`/challenges/${challengeId}/register`),
+  submit: (challengeId: string, data: { content: string; images?: string[] }) =>
     api.post(`/challenges/${challengeId}/submit`, data),
 };
 

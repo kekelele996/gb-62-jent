@@ -44,3 +44,29 @@ export const adminMiddleware = (req: AuthRequest, res: Response, next: NextFunct
   }
   next();
 };
+
+// 可选认证：携带有效令牌时挂载用户信息，否则按匿名用户放行
+export const optionalAuthMiddleware = async (req: AuthRequest, res: Response, next: NextFunction) => {
+  try {
+    const authHeader = req.headers.authorization;
+
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      const token = authHeader.split(' ')[1];
+      const payload = verifyToken(token);
+
+      if (payload) {
+        const user = await prisma.user.findUnique({
+          where: { id: payload.userId }
+        });
+
+        if (user) {
+          req.userId = payload.userId;
+          req.isAdmin = user.isAdmin;
+        }
+      }
+    }
+  } catch (error) {
+    // 令牌异常时按匿名用户处理，不影响公开数据访问
+  }
+  next();
+};
