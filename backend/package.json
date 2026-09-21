@@ -9,7 +9,10 @@
     "start": "node dist/server.js",
     "prisma:generate": "prisma generate",
     "prisma:push": "prisma db push",
-    "prisma:studio": "prisma studio"
+    "prisma:studio": "prisma studio",
+    "db:setup": "prisma generate && prisma db push && ts-node scripts/ensure-indexes.ts",
+    "test:challenges": "ts-node --transpile-only tests/challenge.integration.ts",
+    "test:stress": "ts-node --transpile-only tests/challenge.stress.ts"
   },
   "dependencies": {
     "@prisma/client": "^5.10.0",
@@ -34,6 +37,7 @@
     "@types/node": "^20.11.16",
     "@types/uuid": "^9.0.8",
     "prisma": "^5.10.0",
+    "ts-node": "^10.9.2",
     "ts-node-dev": "^2.0.0",
     "typescript": "^5.3.3"
   }

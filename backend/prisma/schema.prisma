@@ -64,7 +64,9 @@ model User {
   receivedMessages  Message[] @relation("ReceivedMessages")
   reports     Report[]
   challengeSubmissions ChallengeSubmission[]
-  
+  challengeRegistrations ChallengeRegistration[]
+
+
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
   
@@ -187,16 +189,46 @@ model Challenge {
   title       String
   description String
   coverImage  String?
+
+  // 活动时间（用于展示）
   startDate   DateTime
   endDate     DateTime
+
+  // 报名名额
+  capacity        Int
+  // 已占用名额（仅统计有效报名）
+  registeredCount Int     @default(0)
+
+  // 报名截止时间：超过后不能报名、不能取消
+  registrationDeadline DateTime
+  // 成果截止时间：超过后不能提交、不能修改
+  submissionDeadline   DateTime
+
   isActive    Boolean   @default(true)
-  
-  submissions ChallengeSubmission[]
-  
+
+  submissions   ChallengeSubmission[]
+  registrations ChallengeRegistration[]
+
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
-  
+
   @@map("challenges")
+}
+
+// 活动报名记录模型
+model ChallengeRegistration {
+  id          String    @id @default(auto()) @map("_id") @db.ObjectId
+  challengeId String    @db.ObjectId
+  challenge   Challenge @relation(fields: [challengeId], references: [id])
+  userId      String    @db.ObjectId
+  user        User      @relation(fields: [userId], references: [id])
+
+  createdAt   DateTime  @default(now())
+
+  // 每人每个挑战仅一条有效报名
+  @@unique([challengeId, userId])
+  @@index([userId])
+  @@map("challenge_registrations")
 }
 
 // 活动提交模型
@@ -209,9 +241,13 @@ model ChallengeSubmission {
   content     String
   images      String[]
   isWinning   Boolean   @default(false)
-  
+
   createdAt   DateTime  @default(now())
-  
+  updatedAt   DateTime  @updatedAt
+
+  // 每人每个挑战仅一份成果
+  @@unique([challengeId, userId])
+  @@index([userId])
   @@map("challenge_submissions")
 }
 

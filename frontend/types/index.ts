@@ -96,14 +96,28 @@ export interface Challenge {
   id: string;
   title: string;
   description: string;
-  coverImage?: string;
+  coverImage?: string | null;
   startDate: string;
   endDate: string;
   isActive: boolean;
+  // 名额
+  capacity: number;
+  registeredCount: number;
+  remainingSlots: number;
+  // 截止时间
+  registrationDeadline: string;
+  submissionDeadline: string;
+  // 服务端依据当前时间计算
+  registrationOpen: boolean;
+  submissionOpen: boolean;
   _count?: {
+    registrations?: number;
     submissions: number;
   };
   submissions?: ChallengeSubmission[];
+  // 当前登录用户状态：null 表示未报名/未登录
+  registrationStatus: 'registered' | null;
+  mySubmission: ChallengeSubmission | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -115,6 +129,7 @@ export interface ChallengeSubmission {
   content: string;
   images: string[];
   isWinning: boolean;
-  user: Pick<User, 'id' | 'username' | 'avatar' | 'level'>;
+  user?: Pick<User, 'id' | 'username' | 'avatar' | 'level'>;
   createdAt: string;
+  updatedAt?: string;
 }

@@ -31,8 +31,7 @@ docker compose up -d
 # 后端启动
 cd backend
 npm install
-npm run prisma:generate
-npm run prisma:push
+npm run db:setup
 npm run dev
 
 # 前端启动
@@ -211,6 +210,15 @@ npm run dev
 - `GET /api/messages/conversations` - 获取会话列表
 - `GET /api/messages/:userId` - 获取与某人的消息
 - `POST /api/messages` - 发送消息
+
+### 种植挑战
+- `GET /api/challenges` - 挑战列表（登录时返回个人报名/提交状态）
+- `GET /api/challenges/:id` - 挑战详情（剩余名额、报名状态、提交状态）
+- `POST /api/challenges` - 管理员创建挑战（需提供 capacity、registrationDeadline、submissionDeadline）
+- `POST /api/challenges/:id/register` - 报名（名额原子占用，满员/重复/超截止整次拒绝）
+- `DELETE /api/challenges/:id/register` - 取消报名（仅报名截止前生效，释放名额）
+- `POST /api/challenges/:id/submit` - 提交成果（报名后可提交，每人限一份，截止后不可提交）
+- `PUT /api/challenges/:id/submit` - 修改成果（成果截止前可改，截止后整次拒绝）
 
 ## License
 
